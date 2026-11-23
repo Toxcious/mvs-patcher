@@ -39,6 +39,10 @@ The exe is not code-signed, so Windows SmartScreen may warn the first time ("Mor
   `recipe.json` (made by the research tools, not in this repository; take it from a release zip) and copies the
   ASI loader from a local game install.
 
+## Licence
+
+MIT, see [`LICENSE`](LICENSE). Bundled third-party software keeps its own licence.
+
 ## Credits
 
 Ultimate ASI Loader by ThirteenAG, CUE4Parse and the other libraries listed in
