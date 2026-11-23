@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- MVS Patcher (named BetaFeel until 2026-11-23; the plugin and pak it installs keep that name): patches, unpatches, plays, and switches the smoothing plugin in a running game. Ships no game files: it rebuilds the pak from the
+       player's own install with recipe.json (offsets and our new bytes only), the way make_pak.js does here. -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>MVSPatcher</AssemblyName>
+    <Product>MVS Patcher</Product>
+    <AssemblyTitle>MVS Patcher</AssemblyTitle>
+    <!-- The players' version, shown in the window's sidebar. Raise it for every release. -->
+    <Version>1.0.0</Version>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CUE4Parse" Version="1.2.2.202609" />
+    <!-- CUE4Parse pulls in 9.0.0, which has a known vulnerability (GHSA-73j8-2gch-69rq); pinned to a fixed release. -->
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.15" />
+    <Compile Include="..\probe\IoStore.cs" Link="IoStore.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,44 @@
+# Whitelist: this folder is also a research workspace full of material extracted from the game (dumps, built paks,
+# the type mappings, notes). Only the patcher's own source is tracked; everything else stays ignored.
+/*
+!/.gitignore
+!/README.md
+
+!/helper/
+/helper/*
+!/helper/*.cs
+!/helper/MVSPatcher.csproj
+!/helper/stage.js
+!/helper/README.txt
+!/helper/THIRD-PARTY-NOTICES.txt
+
+!/plugin/
+/plugin/*
+!/plugin/*.cpp
+!/plugin/*.h
+!/plugin/build.cmd
+!/plugin/BetaFeel.ship.ini
+
+!/pakloader/
+/pakloader/*
+!/pakloader/MvsPakLoader.cpp
+!/pakloader/MvsPakLoader.ini
+!/pakloader/build.cmd
+
+# shared with the research tool; the patcher compiles it in
+!/probe/
+/probe/*
+!/probe/IoStore.cs
+
+# never, even if whitelisted above
+*.asi
+*.dll
+*.exe
+*.pak
+*.utoc
+*.ucas
+*.uasset
+*.uexp
+*.umap
+*.usmap
+*.log
