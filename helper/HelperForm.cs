@@ -12,6 +12,7 @@ sealed class HelperForm : Form
     uint seenSeq;
     int tick;
     Patcher.PartState gpState, smState;
+    int ovsActive, ovsOff;   // OpenVersus files that would load / that Beta gameplay turned off
     string? gpError, smError;
 
     // pages
@@ -173,15 +174,20 @@ sealed class HelperForm : Form
         // Beta gameplay (last: experimental)
         var gp = new Card("Beta gameplay", "EXPERIMENTAL");
         gp.Add(gpStatus);
-        var gpDesc = Theme.Wrap("Movement, hitstun and move timing from the 2023 beta. This changes the game itself: " +
-            "only play people who have it patched too. Unpatch it before playing on OpenVersus or with anyone who does " +
-            "not have it.");
+        var gpDesc = Theme.Wrap("Movement, hitstun and move timing from the 2023 beta. Offline only, for the Lab and " +
+            "playing on your own: it changes the game itself, so it cannot be played online. While it is patched, " +
+            "OpenVersus is turned off so the game cannot join its servers; Unpatch turns OpenVersus back on.");
         gpDesc.Margin = new Padding(0, 0, 0, 12);
         gp.Add(gpDesc, gpBusy, Flow(gpPatch, gpUnpatch), gpNote);
         stack.Add(gp);
 
         playBtn.Click += (_, _) =>
         {
+            // OpenVersus reinstalled or updated itself while beta gameplay is patched: off again before the game starts
+            if (HaveGame && Patcher.State(game, Patcher.Part.Gameplay, recipe?.name ?? "", Program.Dir("plugins")) != Patcher.PartState.Off)
+                try { Patcher.DisableOpenVersus(game, Log); }
+                catch (Exception e) { Log("error: could not turn OpenVersus off (" + e.Message + "); not starting the game"); return; }
+                finally { Refresh_(true); }
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("steam://rungameid/" + Patcher.SteamAppId) { UseShellExecute = true });
             Log("starting the game through Steam");
         };
@@ -367,6 +373,7 @@ sealed class HelperForm : Form
         {
             gpState = Patcher.State(game, Patcher.Part.Gameplay, recipe.name, Program.Dir("plugins"));
             smState = Patcher.State(game, Patcher.Part.Smoothing, recipe.name, Program.Dir("plugins"));
+            try { ovsActive = Patcher.OpenVersusActive(game).Count; ovsOff = Patcher.OpenVersusOff(game).Count; } catch { ovsActive = ovsOff = 0; }
         }
 
         // game card
@@ -399,8 +406,13 @@ sealed class HelperForm : Form
             gpPatch.Text = gpState switch { Patcher.PartState.On => "Patch again", Patcher.PartState.Outdated => "Update", Patcher.PartState.Incomplete => "Repair", _ => "Patch" };
             gpPatch.Enabled = canPatch;
             gpUnpatch.Enabled = canPatch && gpState != Patcher.PartState.Off;
+            bool gpIn = gpState != Patcher.PartState.Off;
             if (gpError != null) SetNote(gpNote, "Did not finish: " + gpError, Theme.Bad);
-            else if (running && gpState != Patcher.PartState.Off) SetNote(gpNote, closeFirst + " While it is patched, only play people who have it patched too.", Theme.Warn);
+            else if (gpIn && ovsActive > 0)
+                SetNote(gpNote, (running ? "OpenVersus is in this game too: close the game now and do not play online. " :
+                    "OpenVersus is installed again: Play or Patch again turns it off. ") + closeFirst, Theme.Bad);
+            else if (running && gpIn) SetNote(gpNote, closeFirst + " While it is patched, the game is for offline play only.", Theme.Warn);
+            else if (gpIn && ovsOff > 0) SetNote(gpNote, "OpenVersus is turned off while this is patched. Unpatch turns it back on.", Theme.Muted);
             else SetNote(gpNote, closeFirst, Theme.Muted);
         }
 

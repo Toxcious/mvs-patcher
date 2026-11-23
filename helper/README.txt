@@ -1,4 +1,4 @@
-MVS Patcher 1.0.0
+MVS Patcher 1.1.0
 =================
 
 A small Windows program for MultiVersus (Steam). It has two parts that you patch and unpatch separately.
@@ -16,9 +16,11 @@ Client side
 Beta gameplay (EXPERIMENTAL)
   Makes the game play more like the 2023 open beta: faster movement and jumps, earlier cancel windows, beta-like
   dodges, gravity and fall speed.
-  IMPORTANT: this changes the game. Only play with people who have the same patch: compare the gameplay
-  fingerprint shown in the patcher. Unpatch it before playing on OpenVersus or with anyone who does not have it.
-  Online play with it has not been tested.
+  OFFLINE ONLY: this changes the game itself, so it is for the Lab and playing on your own. It cannot be played
+  online.
+  OpenVersus: while Beta gameplay is patched, the patcher turns OpenVersus off (its plugin and its OVS_* paks are
+  renamed to *.mvspatcher-off), so the game cannot join OpenVersus servers with it. Unpatch turns OpenVersus
+  back on. If OpenVersus gets reinstalled meanwhile, the patcher's Play button turns it off again.
 
 
 Requirements
@@ -51,6 +53,8 @@ What it installs, if you ever need to remove it by hand (game closed):
 - %LOCALAPPDATA%\MultiVersus\Saved\Paks\BetaFeel_* (Beta gameplay)
 - <game>\MultiVersus\Binaries\Win64\xinput1_3.dll, only if the game had no ASI loader before (the patcher
   removes it again on Unpatch only if it put it there)
+- OpenVersus files it turned off end in .mvspatcher-off (in the plugins folder and in Saved\Paks): remove that
+  ending to turn OpenVersus back on by hand.
 
 
 Warnings from Windows or antivirus

@@ -7,8 +7,10 @@ separately:
   game's 60 simulation steps), a frame rate cap, fast start (skips the intro and title screen) and a hitbox view.
   It changes only what is drawn, never how the game plays, so it is safe to keep on online.
 - **Beta gameplay (experimental):** makes the game play more like the 2023 open beta: faster movement and jumps,
-  earlier cancel windows, beta-like dodges, gravity and fall speed. This changes the game: only play with people
-  who have the same patch (the patcher shows a fingerprint to compare), and unpatch it before playing on OpenVersus.
+  earlier cancel windows, beta-like dodges, gravity and fall speed. **Offline only:** it changes the game
+  itself, so it is for the Lab and playing on your own and cannot be played online. While it is patched, OpenVersus
+  is turned off (its plugin and paks renamed, nothing deleted) so patched games never join OpenVersus servers; unpatching
+  turns it back on.
 
 ## Download
 

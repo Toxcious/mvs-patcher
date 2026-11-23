@@ -1,9 +1,10 @@
 // MVS Patcher (2026-11-23; was "BetaFeel", before that "the launcher"; the plugin and pak it installs keep the BetaFeel name). A window to keep open beside the game: it patches and unpatches
-// the two parts on their own, starts the game, shows the gameplay fingerprint two players compare, and switches the
+// the two parts on their own, starts the game, and switches the
 // smoothing plugin in a running game. The window is HelperForm.cs (look: Ui.cs); the work is Patcher.cs; the link to a
 // running BetaFeel.asi is PluginLink.cs.
 //
-//   Beta gameplay  BetaFeel_* pak + MvsPakLoader.asi/.ini: changes the game; covered by the fingerprint.
+//   Beta gameplay  BetaFeel_* pak + MvsPakLoader.asi/.ini: changes the game, so offline only (OpenVersus is
+//                  turned off while it is patched); --fingerprint hashes exactly this part.
 //   Smoothing      BetaFeel.asi/.ini: changes only what is drawn, so it can stay on when playing others.
 //
 // Files it expects beside MVSPatcher.exe: recipe.json (from make_pak.js), plugins\MvsPakLoader.asi/.ini,
@@ -52,6 +53,7 @@ static class Program
             {
                 foreach (var p in Enum.GetValues<Patcher.Part>()) Console.WriteLine($"{p}: {Patcher.State(game, p, RecipeName(), plugins)}");
                 Console.WriteLine("ASI loader: " + (Patcher.HasLoader(game) ? "there" : "none"));
+                Console.WriteLine($"OpenVersus: {Patcher.OpenVersusActive(game).Count} files on, {Patcher.OpenVersusOff(game).Count} turned off by this program");
                 return 0;
             }
             if (Arg(a, "--install") is string built) { Patcher.Install(game, built, RecipeName(), plugins, Console.WriteLine); return 0; }

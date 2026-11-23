@@ -121,9 +121,10 @@ public static class Patcher
     // ---- Installing and removing ----
     // Two parts, each patched and unpatched on its own (user, 2026-11-22):
     //   Gameplay   the BetaFeel_* pak in Saved\Paks and MvsPakLoader.asi/.ini: the game plays like the beta. This is
-    //              what the fingerprint covers, and it must be off to play anyone who does not have it.
+    //              what the fingerprint covers. Offline only (no online play supports it): while it is on,
+    //              OpenVersus is turned off (DisableOpenVersus / RestoreOpenVersus below).
     //   Smoothing  BetaFeel.asi/.ini: only how frames are drawn (nothing in the simulation changes), so it can stay
-    //              on while playing others, OpenVersus included.
+    //              on while playing others, OpenVersus included (it leaves OpenVersus alone).
     // Both need the ASI loader; it is installed with whichever comes first and removed (if this program put it there)
     // with whichever goes last.
     public enum Part { Gameplay, Smoothing }
@@ -143,6 +144,85 @@ public static class Patcher
         foreach (var f in GameplayPlugins) CopyOurs(game, pluginSrc, f, owned, log);
         InstallLoader(game, pluginSrc, owned, log);
         SaveOwned(game, owned);
+        DisableOpenVersus(game, log);
+    }
+
+    // ---- OpenVersus while Beta gameplay is on ----
+    // Beta gameplay must never reach OpenVersus's servers (user, 2026-11-23): everyone there plays the game as
+    // released. So patching it turns OpenVersus off and unpatching turns it back on. Off = its plugin
+    // (OpenVersus*.asi, wherever the ASI loader looks) and its paks (OVS_* in Saved\Paks, which our pak loader would
+    // otherwise mount too) renamed with OffSuffix: nothing is deleted, and the name says who did it.
+    public const string OffSuffix = ".mvspatcher-off";
+    static readonly EnumerationOptions Deep = new() { RecurseSubdirectories = true, IgnoreInaccessible = true, MatchCasing = MatchCasing.CaseInsensitive };
+    static readonly EnumerationOptions Flat = new() { IgnoreInaccessible = true, MatchCasing = MatchCasing.CaseInsensitive };
+
+    // Files of OpenVersus's matching a pattern, in every place the ASI loader loads from, and in Saved\Paks.
+    static IEnumerable<string> OpenVersusFiles(string game, string asiPattern, string pakPattern)
+    {
+        var win64 = Path.GetDirectoryName(PluginsDir(game))!;
+        IEnumerable<string> Find(string dir, string pattern, EnumerationOptions o) =>
+            Directory.Exists(dir) ? Directory.EnumerateFiles(dir, pattern, o) : Enumerable.Empty<string>();
+        return Find(win64, asiPattern, Flat)
+            .Concat(Find(PluginsDir(game), asiPattern, Deep))
+            .Concat(Find(Path.Combine(win64, "scripts"), asiPattern, Deep))
+            .Concat(Find(OverrideDir(), pakPattern, Flat))
+            .ToList();
+    }
+
+    // Plugins that are not this program's and would load at the next start (OpenVersus or anyone else's).
+    static List<string> OtherPlugins(string game)
+    {
+        var plugins = PluginsDir(game);
+        var win64 = Path.GetDirectoryName(plugins)!;
+        IEnumerable<string> Find(string dir, EnumerationOptions o) =>
+            Directory.Exists(dir) ? Directory.EnumerateFiles(dir, "*.asi", o) : Enumerable.Empty<string>();
+        string[] mine = { Path.Combine(plugins, "BetaFeel.asi"), Path.Combine(plugins, "MvsPakLoader.asi") };
+        return Find(win64, Flat).Concat(Find(plugins, Deep)).Concat(Find(Path.Combine(win64, "scripts"), Deep))
+            .Where(f => f.EndsWith(".asi", StringComparison.OrdinalIgnoreCase) && !mine.Contains(f, StringComparer.OrdinalIgnoreCase))
+            .ToList();
+    }
+
+    // OpenVersus files that would load at the next start.
+    public static List<string> OpenVersusActive(string game) => OpenVersusFiles(game, "OpenVersus*.asi", "OVS_*")
+        .Where(f => !f.EndsWith(OffSuffix, StringComparison.OrdinalIgnoreCase)
+                 && (Path.GetFileName(f).StartsWith("OVS_", StringComparison.OrdinalIgnoreCase) || f.EndsWith(".asi", StringComparison.OrdinalIgnoreCase)))
+        .ToList();
+
+    // OpenVersus files this program turned off.
+    public static List<string> OpenVersusOff(string game) => OpenVersusFiles(game, "OpenVersus*.asi" + OffSuffix, "OVS_*" + OffSuffix).ToList();
+
+    public static void DisableOpenVersus(string game, Action<string> log)
+    {
+        var on = OpenVersusActive(game);
+        // a newer copy (OpenVersus reinstalled or updated meanwhile) replaces an older turned-off one
+        foreach (var f in on) File.Move(f, f + OffSuffix, true);
+        if (on.Count > 0) log($"OpenVersus turned off while beta gameplay is patched ({on.Count} files: {string.Join(", ", on.Select(Path.GetFileName))})");
+    }
+
+    public static void RestoreOpenVersus(string game, Action<string> log)
+    {
+        int n = 0;
+        // OpenVersus installed again meanwhile (any version): that install stays, and no old plugin comes back beside
+        // it, or two OpenVersus versions would load. Its turned-off copies are left as they are.
+        // Likewise, of several turned-off plugins (OpenVersus reinstalled as a newer version and turned off again)
+        // only the newest comes back: its file name carries the version (OpenVersus_2026.11.10.04.asi).
+        bool ovsPluginOn = OpenVersusActive(game).Any(f => f.EndsWith(".asi", StringComparison.OrdinalIgnoreCase));
+        var off = OpenVersusOff(game);
+        var newestPlugin = off.Where(f => f.EndsWith(".asi" + OffSuffix, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase).ThenByDescending(File.GetLastWriteTimeUtc)
+            .FirstOrDefault();
+        foreach (var f in off)
+        {
+            var orig = f[..^OffSuffix.Length];
+            bool plugin = orig.EndsWith(".asi", StringComparison.OrdinalIgnoreCase);
+            if (File.Exists(orig) || (plugin && (ovsPluginOn || f != newestPlugin)))
+            {
+                log($"left {Path.GetFileName(f)}: OpenVersus has a newer {(plugin ? "plugin" : Path.GetFileName(orig))} there");
+                continue;
+            }
+            File.Move(f, orig); n++;
+        }
+        if (n > 0) log($"OpenVersus turned back on ({n} files)");
     }
 
     public static void InstallSmoothing(string game, string pluginSrc, Action<string> log)
@@ -227,6 +307,8 @@ public static class Patcher
             foreach (var f in Directory.GetFiles(dst, "BetaFeel_*")) { File.Delete(f); log($"removed {Path.GetFileName(f)}"); }
         var owned = Owned(game);
         foreach (var f in GameplayPlugins) RemoveFile(Path.Combine(PluginsDir(game), f), owned, log);
+        // OpenVersus back first, so the loader check below sees it.
+        RestoreOpenVersus(game, log);
         RemoveLoaderIfUnused(game, owned, log);
         SaveOwned(game, owned);
     }
@@ -256,12 +338,22 @@ public static class Patcher
         owned.Remove(p);
     }
 
-    // The loader goes (if this program put it there) once neither part needs it.
+    // The loader goes (if this program put it there) once neither part needs it, and only if no other plugin does:
+    // OpenVersus installed afterwards (by hand or by MVS Buddy, which also puts its own copy over ours) loads through
+    // the same xinput1_3.dll. Then the loader stays and is no longer counted as ours.
     static void RemoveLoaderIfUnused(string game, HashSet<string> owned, Action<string> log)
     {
         var plugins = PluginsDir(game);
         if (File.Exists(Path.Combine(plugins, "MvsPakLoader.asi")) || File.Exists(Path.Combine(plugins, "BetaFeel.asi"))) return;
         var win64 = Path.GetDirectoryName(plugins)!;
+        var others = OtherPlugins(game);
+        if (others.Count > 0)
+        {
+            foreach (var f in new[] { "xinput1_3.dll", "LICENSE_Ultimate_ASI_Loader.txt" })
+                if (owned.Remove(Path.Combine(win64, f)) && f.EndsWith(".dll"))
+                    log($"left xinput1_3.dll: other plugins load through it ({string.Join(", ", others.Select(Path.GetFileName))})");
+            return;
+        }
         foreach (var f in new[] { "xinput1_3.dll", "LICENSE_Ultimate_ASI_Loader.txt" })
         {
             var p = Path.Combine(win64, f);

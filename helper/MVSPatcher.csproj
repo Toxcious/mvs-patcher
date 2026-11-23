@@ -12,7 +12,7 @@
     <Product>MVS Patcher</Product>
     <AssemblyTitle>MVS Patcher</AssemblyTitle>
     <!-- The players' version, shown in the window's sidebar. Raise it for every release. -->
-    <Version>1.0.0</Version>
+    <Version>1.1.0</Version>
     <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
   </PropertyGroup>
 
