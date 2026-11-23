@@ -1,4 +1,4 @@
-MVS Patcher 1.1.0
+MVS Patcher 1.1.1
 =================
 
 A small Windows program for MultiVersus (Steam). It has two parts that you patch and unpatch separately.
@@ -20,7 +20,7 @@ Beta gameplay (EXPERIMENTAL)
   online.
   OpenVersus: while Beta gameplay is patched, the patcher turns OpenVersus off (its plugin and its OVS_* paks are
   renamed to *.mvspatcher-off), so the game cannot join OpenVersus servers with it. Unpatch turns OpenVersus
-  back on. If OpenVersus gets reinstalled meanwhile, the patcher's Play button turns it off again.
+  back on. If OpenVersus gets reinstalled meanwhile, the patcher says so; press Patch again to turn it off.
 
 
 Requirements
@@ -36,7 +36,7 @@ How to use
 2. Close the game.
 3. Start MVSPatcher.exe. It finds the game through Steam; if not, use "Change folder".
 4. Click Patch on the part(s) you want. Patching needs the game closed.
-5. Press Play, or start the game from Steam as usual.
+5. Start the game from Steam as usual.
 
 The switches on the Client side card take effect at once, even while the game is running. Keep the patcher open
 beside the game if you want to change them during play; you can also close it, the game keeps working.

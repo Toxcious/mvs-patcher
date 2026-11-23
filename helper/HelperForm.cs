@@ -1,4 +1,4 @@
-// The helper's window. Home: the game (find, play), then the two parts each with Patch / Unpatch: Client side
+// The helper's window. Home: the game (found or chosen; started from Steam, not here), then the two parts each with Patch / Unpatch: Client side
 // (BetaFeel.asi: smoothing, fast start, hitboxes) first, Beta gameplay (tagged EXPERIMENTAL) last. Activity: the log.
 // About: the game's folders. Look: Ui.cs.
 sealed class HelperForm : Form
@@ -22,7 +22,6 @@ sealed class HelperForm : Form
     // game card
     readonly StatusLine gameStatus = new();
     readonly Label gamePath = Theme.Text_("", Theme.Small, Theme.Muted);
-    readonly FlatBtn playBtn = new("Play", true);
     // beta gameplay card
     readonly StatusLine gpStatus = new();
     readonly WrapLabel gpNote = Theme.Wrap("");
@@ -130,9 +129,7 @@ sealed class HelperForm : Form
         change.Click += (_, _) => FindGame(true);
         var left = new VStack();
         left.Add(gameStatus, Flow(gamePath, change));
-        playBtn.Padding = new Padding(30, 9, 30, 9);
-        playBtn.Margin = new Padding(16, 0, 0, 0);
-        gameCard.Add(new Split(left, playBtn));
+        gameCard.Add(left);
         stack.Add(gameCard);
 
         // Client side (BetaFeel.asi)
@@ -181,16 +178,6 @@ sealed class HelperForm : Form
         gp.Add(gpDesc, gpBusy, Flow(gpPatch, gpUnpatch), gpNote);
         stack.Add(gp);
 
-        playBtn.Click += (_, _) =>
-        {
-            // OpenVersus reinstalled or updated itself while beta gameplay is patched: off again before the game starts
-            if (HaveGame && Patcher.State(game, Patcher.Part.Gameplay, recipe?.name ?? "", Program.Dir("plugins")) != Patcher.PartState.Off)
-                try { Patcher.DisableOpenVersus(game, Log); }
-                catch (Exception e) { Log("error: could not turn OpenVersus off (" + e.Message + "); not starting the game"); return; }
-                finally { Refresh_(true); }
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("steam://rungameid/" + Patcher.SteamAppId) { UseShellExecute = true });
-            Log("starting the game through Steam");
-        };
         gpPatch.Click += async (_, _) => await Run(Patcher.Part.Gameplay, "Patching beta gameplay", () =>
         {
             var tmp = Path.Combine(Path.GetTempPath(), "BetaFeel_build");
@@ -385,8 +372,6 @@ sealed class HelperForm : Form
             else gameStatus.Set(Theme.Good, "Running · " + (st.InMatch ? "in a match" : "in the menus") + (st.Fps is double f ? $" · {f:0} fps" : ""));
             if (gamePath.Text != game) gamePath.Text = game;
         }
-        playBtn.Enabled = HaveGame && !running;
-        playBtn.Text = running ? "Running" : "Play";
 
         bool canPatch = HaveGame && !busy && !running;
         string closeFirst = running ? "Close the game to patch or unpatch." : "";
@@ -410,7 +395,7 @@ sealed class HelperForm : Form
             if (gpError != null) SetNote(gpNote, "Did not finish: " + gpError, Theme.Bad);
             else if (gpIn && ovsActive > 0)
                 SetNote(gpNote, (running ? "OpenVersus is in this game too: close the game now and do not play online. " :
-                    "OpenVersus is installed again: Play or Patch again turns it off. ") + closeFirst, Theme.Bad);
+                    "OpenVersus is installed again: press Patch again to turn it off. ") + closeFirst, Theme.Bad);
             else if (running && gpIn) SetNote(gpNote, closeFirst + " While it is patched, the game is for offline play only.", Theme.Warn);
             else if (gpIn && ovsOff > 0) SetNote(gpNote, "OpenVersus is turned off while this is patched. Unpatch turns it back on.", Theme.Muted);
             else SetNote(gpNote, closeFirst, Theme.Muted);
